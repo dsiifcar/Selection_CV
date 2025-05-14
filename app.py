@@ -203,9 +203,9 @@ if st.button("Démarrer la Sélection"):
         - Numéro de téléphone
         - Ville
         - Pays
-        - Nombre total d'années d'expérience (sans inclure les stages)
+        - Nombre total d'années d'expérience (Le nombre doit être exact et ne doit pas inclure les stages)
         - Pourcentage d'admissibilité au poste (0-100 %)
-        - Commentaires détaillés (environ 2 à 3 phrases) pour justifier le % d'admissibilité, en mentionnant les forces et les faiblesses par rapport aux exigences du poste.
+        - Commentaires détaillés (environ 3 à 5 phrases) pour justifier le % d'admissibilité, en mentionnant les forces et les faiblesses par rapport aux exigences du poste.
         - Sexe (Homme, Femme, Non spécifié)
         - Formation (Niveaux bac, bac, Bac+2, Bac+3, Bac+4, Bac+5, Bac+8)
         - Date de naissance (si mentionnée, sinon N/A)

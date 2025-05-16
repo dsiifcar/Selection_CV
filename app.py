@@ -45,12 +45,12 @@ if 'job_experience' not in st.session_state:
     st.session_state['job_experience'] = ""
 if 'job_description' not in st.session_state:
     st.session_state['job_description'] = ""
-if 'resume_text' not in st.session_state:
-    st.session_state['resume_text'] = None
-if 'filename' not in st.session_state:
-    st.session_state['filename'] = None
+if 'resume_texts' not in st.session_state:
+    st.session_state['resume_texts'] = {}  # Store resume texts by filename
+if 'selected_filename' not in st.session_state:
+    st.session_state['selected_filename'] = None
 if 'chat_history' not in st.session_state:
-    st.session_state['chat_history'] = []  # Store chat history
+    st.session_state['chat_history'] = {}  # Store chat history by filename
 if 'model' not in st.session_state:
     st.session_state['model'] = None  # Store the Gemini model
 # Input method selection
@@ -272,12 +272,9 @@ if st.button("Démarrer la Sélection"):
             # Read the file directly from uploaded_file
             if file_extension == "pdf":
                 text = extract_text_from_pdf(uploaded_file)  # Pass upload file directly
-                st.session_state['resume_text'] = text
-                st.session_state['filename'] = filename
+
             elif file_extension == "docx":
                 text = extract_text_from_docx(uploaded_file)  # Pass upload file directly
-                st.session_state['resume_text'] = text
-                st.session_state['filename'] = filename
             else:
                 st.warning(f"Type de fichier non pris en charge: {filename}")
                 continue  # passer au fichier suivant
@@ -286,6 +283,8 @@ if st.button("Démarrer la Sélection"):
             continue
 
         if text:
+            # Store the resume text in the dictionary
+            st.session_state['resume_texts'][filename] = text
             ai_response = evaluate_resume_with_ai(text, st.session_state['job_title'], st.session_state['job_experience'], st.session_state['job_description'], filename)
 
             if ai_response:  # Traiter uniquement s'il y a une réponse
@@ -411,53 +410,68 @@ if st.button("Démarrer la Sélection"):
             mime='application/vnd.ms-excel'
         )
 
+
 # Chat with AI Section - Iterative Chat (Outside the "Démarrer la Sélection" button)
-if st.session_state['resume_text']:
-    model = configure_api_key()  # Ensure the model is configured.
-    if model:
-        st.markdown("<h3 style='text-align: left;'>Chattez avec l'IA concernant le CV de:</h3>", unsafe_allow_html=True)
-        st.markdown(f"Fichier: {st.session_state['filename']}")  # Display filename
+model = configure_api_key()  # Ensure the model is configured.
+if model:
+    # Allow selection of the resume for chatting
+    available_resumes = list(st.session_state['resume_texts'].keys())
+    if available_resumes:
+        st.session_state['selected_filename'] = st.selectbox("Sélectionnez le CV pour le chat:", available_resumes)
 
-        # Display Chat History
-        for message in st.session_state['chat_history']:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
+        if st.session_state['selected_filename']:
+            selected_resume_text = st.session_state['resume_texts'][st.session_state['selected_filename']]  # Get the selected resume text
+            st.markdown("<h3 style='text-align: left;'>Chattez avec l'IA concernant le CV de:</h3>", unsafe_allow_html=True)
+            st.markdown(f"Fichier: {st.session_state['selected_filename']}")  # Display filename
 
-        user_question = st.chat_input("Posez votre question sur ce CV:")
+            # Initialize chat history for the selected file if it doesn't exist
+            if st.session_state['selected_filename'] not in st.session_state['chat_history']:
+                st.session_state['chat_history'][st.session_state['selected_filename']] = []
 
-        if user_question:
-            st.session_state['chat_history'].append({"role": "user", "content": user_question})
-            with st.chat_message("user"):
-                st.markdown(user_question)
+            # Display Chat History for the selected file
+            for message in st.session_state['chat_history'][st.session_state['selected_filename']]:
+                with st.chat_message(message["role"]):
+                    st.markdown(message["content"])
 
-            # Prepare the prompt with the resume text, job details, and chat history
-            chat_prompt = f"""
-            Vous êtes un assistant spécialisé dans l'analyse de CV.
+            user_question = st.chat_input("Posez votre question sur ce CV:")
 
-            Informations sur le poste:
-            Titre du poste: {st.session_state['job_title']}
-            Exigences d'expérience: {st.session_state['job_experience']}
-            Description du poste: {st.session_state['job_description']}
+            if user_question:
+                # Add user question to chat history for the selected file
+                st.session_state['chat_history'][st.session_state['selected_filename']].append({"role": "user", "content": user_question})
+                with st.chat_message("user"):
+                    st.markdown(user_question)
 
-            CV:
-            {st.session_state['resume_text']}
+                # Prepare the prompt with the resume text, job details, and chat history
+                chat_prompt = f"""
+                Vous êtes un assistant spécialisé dans l'analyse de CV.
 
-            Historique de la conversation:
-            """
-            for message in st.session_state['chat_history']:
-                chat_prompt += f"\n{message['role']}: {message['content']}"
+                Informations sur le poste:
+                Titre du poste: {st.session_state['job_title']}
+                Exigences d'expérience: {st.session_state['job_experience']}
+                Description du poste: {st.session_state['job_description']}
 
-            chat_prompt += "\nassistant:" # signal that gemini should answer
+                CV:
+                {selected_resume_text}
 
-            try:
-                # Use the same model instance to generate the response
-                chat_response = model.generate_content(chat_prompt)
-                ai_answer = chat_response.text
-                st.session_state['chat_history'].append({"role": "assistant", "content": ai_answer})
-                with st.chat_message("assistant"):
-                    st.markdown(ai_answer)  # Display the AI's response
-            except Exception as e:
-                st.error(f"Erreur lors de la communication avec l'IA: {e}")
+                Historique de la conversation:
+                """
+                for message in st.session_state['chat_history'][st.session_state['selected_filename']]:
+                    chat_prompt += f"\n{message['role']}: {message['content']}"
+
+                chat_prompt += "\nassistant:"  # signal that gemini should answer
+
+                try:
+                    # Use the same model instance to generate the response
+                    chat_response = model.generate_content(chat_prompt)
+                    ai_answer = chat_response.text
+                    # Add AI response to chat history for the selected file
+                    st.session_state['chat_history'][st.session_state['selected_filename']].append({"role": "assistant", "content": ai_answer})
+                    with st.chat_message("assistant"):
+                        st.markdown(ai_answer)  # Display the AI's response
+                except Exception as e:
+                    st.error(f"Erreur lors de la communication avec l'IA: {e}")
+    else:
+        st.info("Veuillez d'abord télécharger et traiter un CV pour activer cette fonctionnalité.")
 
 else:
     st.info("Veuillez d'abord télécharger et traiter un CV pour activer cette fonctionnalité.")

@@ -45,7 +45,10 @@ if 'job_experience' not in st.session_state:
     st.session_state['job_experience'] = ""
 if 'job_description' not in st.session_state:
     st.session_state['job_description'] = ""
-
+if 'resume_text' not in st.session_state:
+    st.session_state['resume_text'] = None
+if 'filename' not in st.session_state:
+    st.session_state['filename'] = None
 # Input method selection
 # st.markdown("<h3 style='text-align: left;'>Méthode de saisie des détails du poste:</h3>", unsafe_allow_html=True)
 input_method = st.radio("", ["Lien URL", "Saisir manuellement"])
@@ -266,10 +269,12 @@ if st.button("Démarrer la Sélection"):
             # Read the file directly from uploaded_file
             if file_extension == "pdf":
                 text = extract_text_from_pdf(uploaded_file)  # Pass upload file directly
-
+                st.session_state['resume_text'] = text
+                st.session_state['filename'] = filename
             elif file_extension == "docx":
                 text = extract_text_from_docx(uploaded_file)  # Pass upload file directly
-
+                st.session_state['resume_text'] = text
+                st.session_state['filename'] = filename
             else:
                 st.warning(f"Type de fichier non pris en charge: {filename}")
                 continue  # passer au fichier suivant
@@ -402,3 +407,40 @@ if st.button("Démarrer la Sélection"):
             file_name='resume_selection_results.xlsx',
             mime='application/vnd.ms-excel'
         )
+
+    # Chat with AI Section
+    if st.session_state['resume_text']:
+        st.markdown("<h3 style='text-align: left;'>Chattez avec l'IA concernant le CV de:</h3>", unsafe_allow_html=True)
+        st.markdown(f"Fichier: {st.session_state['filename']}")  # Display filename
+        user_question = st.text_area("Posez votre question sur ce CV:")
+
+        if st.button("Envoyer la question"):
+            if user_question:
+                # Prepare the prompt with the resume text and user question
+                chat_prompt = f"""
+                Vous êtes un assistant spécialisé dans l'analyse de CV.
+
+                Informations sur le poste:
+                Titre du poste: {st.session_state['job_title']}
+                Exigences d'expérience: {st.session_state['job_experience']}
+                Description du poste: {st.session_state['job_description']}
+
+                CV:
+                {st.session_state['resume_text']}
+
+                Question de l'utilisateur: {user_question}
+
+                Veuillez répondre à la question de l'utilisateur en utilisant les informations contenues dans le CV et les informations sur le poste. Soyez précis et concis dans votre réponse.
+                """
+
+                try:
+                    # Use the same model instance to generate the response
+                    chat_response = model.generate_content(chat_prompt)
+                    st.markdown("Réponse de l'IA:")
+                    st.write(chat_response.text)  # Display the AI's response
+                except Exception as e:
+                    st.error(f"Erreur lors de la communication avec l'IA: {e}")
+            else:
+                st.warning("Veuillez entrer une question.")
+    else:
+        st.info("Veuillez d'abord télécharger et traiter un CV pour activer cette fonctionnalité.")

@@ -302,17 +302,7 @@ if st.button("Démarrer la Sélection"):
                     new_filename = f"{admissibility}% - {candidate_name}.{file_extension}"
 
                     # NEW SECTION: Handle target_directory only if defined elsewhere
-                    target_directory = "" # Or define it however it's used in your environment
-
-                    if target_directory:  # Check if a target directory was provided.
-                        new_filepath = os.path.join(target_directory, new_filename)
-
-                        # *HERE IS THE CHANGE:  We just build the path.* No file operations.
-                        # new_filepath = os.path.join(target_directory, new_filename) # REDUNDANT - ALREADY DEFINED ABOVE
-
-
-                    else:
-                        new_filepath = "N/A"
+                    
 
                     # Add results
                     results.append({
@@ -328,8 +318,8 @@ if st.button("Démarrer la Sélection"):
                         "Expérience (Années)": experience,
                         "Date de naissance": date_naissance,
                         "Téléphone": phone_number,
-                        "E-mail": email,
-                        "Resume Link": new_filepath  # Store the new filepath
+                        "E-mail": email
+                        
                     })
 
                 except Exception as e:

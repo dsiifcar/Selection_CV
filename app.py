@@ -8,6 +8,7 @@ import streamlit as st
 import pandas as pd
 import shutil
 import io
+from docx.enum.section import WD_ORIENT
 
 # Configuration de l'interface utilisateur Streamlit
 st.set_page_config(layout="wide")  # Utiliser toute la largeur de la page
@@ -395,18 +396,20 @@ if st.button("Démarrer la Sélection"):
             processed_data = output.getvalue()
             return processed_data
 
-        # Download button
-        excel_file = to_excel(df)
-        st.download_button(
-            label="Télécharger les résultats au format Excel",
-            data=excel_file,
-            file_name='resume_selection_results.xlsx',
-            mime='application/vnd.ms-excel'
-        )
+        # Function to set document to portrait
+        def set_portrait(document):
+            section = document.sections[0]
+            section.orientation = WD_ORIENT.PORTRAIT
+            new_width, new_height = section.page_height, section.page_width
+            section.page_width = new_width
+            section.page_height = new_height
 
         # Function to create a styled Word document
         def create_styled_docx(df):
             document = Document()
+
+            # Set the document to portrait orientation
+            set_portrait(document)
 
             # Add title
             document.add_heading('Resume Selection Results', level=1)
@@ -440,6 +443,15 @@ if st.button("Démarrer la Sélection"):
             document.save(docx_stream)
             docx_stream.seek(0)  # Rewind the stream to the beginning
             return docx_stream
+
+        # Download button
+        excel_file = to_excel(df)
+        st.download_button(
+            label="Télécharger les résultats au format Excel",
+            data=excel_file,
+            file_name='resume_selection_results.xlsx',
+            mime='application/vnd.ms-excel'
+        )
 
         # Button to download results in DOCX format
         docx_file = create_styled_docx(df)

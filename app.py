@@ -197,7 +197,7 @@ if st.button("Démarrer la Sélection"):
 
         {resume_text}
 
-        Analysez le CV et extrayez les informations suivantes :
+        Analysez en profondeur le CV. Veuillez extraire les informations suivantes :
         - Nom du candidat
         - Adresse e-mail
         - Numéro de téléphone
@@ -209,6 +209,8 @@ if st.button("Démarrer la Sélection"):
         - Sexe (Homme, Femme, Non spécifié)
         - Formation (Niveaux bac, bac, Bac+2, Bac+3, Bac+4, Bac+5, Bac+8)
         - Date de naissance (si mentionnée, sinon N/A)
+
+        De plus, en vous basant sur les commentaires détaillés, générez une liste de 10 questions à poser au candidat lors d'un entretien pour évaluer plus précisément les aspects de son profil qui ne sont pas suffisamment détaillés dans son CV et qui sont pertinents pour le poste.  Formulez ces questions de manière à obtenir des réponses spécifiques et mesurables.
 
         Présentez la réponse dans un format de type JSON (mais sous forme de texte brut, pas de JSON réel). Assurez-vous qu'elle est analysable.
 
@@ -223,6 +225,11 @@ if st.button("Démarrer la Sélection"):
           "Nombre total d'années d'expérience": "5",
           "Pourcentage d'admissibilité": "85 %",
           "Commentaires": "John possède une solide expérience en gestion de projet et correspond bien aux exigences du poste. Il manque d'expérience dans les technologies spécifiques décrites dans la description du poste, ce qui diminue le pourcentage.",
+          "Questions d'entretien": [
+            "Pouvez-vous décrire un projet où vous avez utilisé [technologie spécifique] et quels étaient les résultats?",
+            "Comment avez-vous géré [situation spécifique] dans le passé?",
+            "Décrivez votre expérience avec [compétence clé] et donnez un exemple concret."
+          ],
           "Sexe": "Homme",
           "Formation": "Bac+5",
           "Date de naissance": "1990-01-01"
@@ -291,6 +298,13 @@ if st.button("Démarrer la Sélection"):
                     comments_match = re.search(r'"Commentaires":\s*"([^"]*)"', ai_response)
                     comments = comments_match.group(1) if comments_match else "N/A"
 
+                    # Extract interview questions
+                    questions_match = re.search(r'"Questions d\'entretien":\s*\[([^\]]*)\]', ai_response)
+                    questions_str = questions_match.group(1) if questions_match else ""
+
+                    # Properly split and clean up the questions
+                    questions = [q.strip().strip('"') for q in questions_str.split(',') if q.strip()]
+
                     gender = re.search(r'"Sexe":\s*"([^"]*)"', ai_response)
                     gender = gender.group(1) if gender else "N/A"
                     formation = re.search(r'"Formation":\s*"([^"]*)"', ai_response)
@@ -302,7 +316,7 @@ if st.button("Démarrer la Sélection"):
                     new_filename = f"{admissibility}% - {candidate_name}.{file_extension}"
 
                     # NEW SECTION: Handle target_directory only if defined elsewhere
-                    
+
 
                     # Add results
                     results.append({
@@ -311,6 +325,7 @@ if st.button("Démarrer la Sélection"):
                         "Job Title": st.session_state['job_title'],
                         "Admissibilité (%)": admissibility,
                         "Commentaires": comments,
+                        "Questions d'entretien": questions,
                         "Gender": gender,
                         "Formation": formation,
                         "Ville": city,
@@ -319,7 +334,7 @@ if st.button("Démarrer la Sélection"):
                         "Date de naissance": date_naissance,
                         "Téléphone": phone_number,
                         "E-mail": email
-                        
+
                     })
 
                 except Exception as e:
@@ -349,7 +364,7 @@ if st.button("Démarrer la Sélection"):
     df = pd.DataFrame(results)
 
     # Check if all expected columns are present in the DataFrame
-    expected_columns = ["Nom du fichier", "Nom du candidat", "Job Title", "Admissibilité (%)", "Commentaires", "Gender",
+    expected_columns = ["Nom du fichier", "Nom du candidat", "Job Title", "Admissibilité (%)", "Commentaires", "Questions d'entretien", "Gender",
                         "Formation", "Ville", "Pays", "Expérience (Années)", "Date de naissance", "Téléphone", "E-mail"]
     missing_columns = [col for col in expected_columns if col not in df.columns]
 

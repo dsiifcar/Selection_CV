@@ -210,7 +210,7 @@ if st.button("Démarrer la Sélection"):
         - Formation (Niveaux bac, bac, Bac+2, Bac+3, Bac+4, Bac+5, Bac+8)
         - Date de naissance (si mentionnée, sinon N/A)
 
-        De plus, en vous basant sur les commentaires détaillés, générez une liste de 10 questions à poser au candidat lors d'un entretien pour évaluer plus précisément les aspects de son profil qui ne sont pas suffisamment détaillés dans son CV et qui sont pertinents pour le poste.  Formulez ces questions de manière à obtenir des réponses spécifiques et mesurables.
+        De plus, en vous basant sur les commentaires détaillés, générez une liste de 10 questions à poser au candidat lors d'un entretien pour évaluer plus précisément les aspects de son profil qui ne sont pas suffisamment détaillés dans son CV et qui sont pertinents pour le poste.  Formulez ces questions de manière à obtenir des réponses spécifiques et mesurables. Chaque question doit tenir sur une seule ligne.  Numérotez les questions de 1 à 10.
 
         Présentez la réponse dans un format de type JSON (mais sous forme de texte brut, pas de JSON réel). Assurez-vous qu'elle est analysable.
 
@@ -226,9 +226,16 @@ if st.button("Démarrer la Sélection"):
           "Pourcentage d'admissibilité": "85 %",
           "Commentaires": "John possède une solide expérience en gestion de projet et correspond bien aux exigences du poste. Il manque d'expérience dans les technologies spécifiques décrites dans la description du poste, ce qui diminue le pourcentage.",
           "Questions d'entretien": [
-            "Pouvez-vous décrire un projet où vous avez utilisé [technologie spécifique] et quels étaient les résultats?",
-            "Comment avez-vous géré [situation spécifique] dans le passé?",
-            "Décrivez votre expérience avec [compétence clé] et donnez un exemple concret."
+            "1. Pouvez-vous décrire un projet où vous avez utilisé [technologie spécifique] et quels étaient les résultats?",
+            "2. Comment avez-vous géré [situation spécifique] dans le passé?",
+            "3. Décrivez votre expérience avec [compétence clé] et donnez un exemple concret.",
+            "4. ...",
+            "5. ...",
+            "6. ...",
+            "7. ...",
+            "8. ...",
+            "9. ...",
+            "10. ..."
           ],
           "Sexe": "Homme",
           "Formation": "Bac+5",

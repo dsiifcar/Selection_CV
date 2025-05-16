@@ -187,42 +187,49 @@ if st.button("Démarrer la Sélection"):
         total_requests += 1
         # Amélioration de l'invite
         prompt = f"""
-        Tu es un recruteur expert spécialisé en IT.  
-        
-        Je vais te fournir une **description de poste** et un **CV**.  
-        Ta tâche consiste à faire une **analyse approfondie et structurée** du CV en te basant sur les exigences du poste.
-        
-        Il est impératif que tu réalises une **comparaison détaillée** entre :
-        - Les compétences techniques, fonctionnelles et comportementales exigées
-        - Les expériences professionnelles, les certifications, et les formations du candidat
-        
-        Voici les éléments du poste :
-        
-        Titre du poste : {job_title}  
-        Exigences d'expérience : {job_experience}  
-        Description complète du poste :  
-        {job_description}
-        
-        Voici le contenu du CV (nom de fichier : {filename}) :  
+        Compte tenu des exigences suivantes pour le poste:
+
+        Titre du poste: {job_title}
+        Exigences d'expérience: {job_experience}
+        Description du poste: {job_description}
+
+        Et de ce CV (nom de fichier: {filename}):
+
         {resume_text}
-        
-        À partir de cette analyse croisée, extrais et présente les informations suivantes dans un format texte ressemblant à du JSON (lisible et facilement analysable) :
-        
-        - Nom complet du candidat
+
+        Analysez le CV et extrayez les informations suivantes :
+        - Nom du candidat
         - Adresse e-mail
         - Numéro de téléphone
         - Ville
         - Pays
-        - Nombre exact d’années d’expérience professionnelle (ne pas inclure les stages)
-        - Pourcentage d’adéquation au poste (entre 0 % et 100 %)
-        - Commentaires détaillés (3 à 5 phrases justifiant le pourcentage : forces du candidat, lacunes par rapport aux exigences, technologies manquantes, cohérence avec les missions attendues)
+        - Nombre total d'années d'expérience (Le nombre doit être exact et ne doit pas inclure les stages)
+        - Pourcentage d'admissibilité au poste (0-100 %)
+        - Commentaires détaillés (environ 3 à 5 phrases) pour justifier le % d'admissibilité, en mentionnant les forces et les faiblesses par rapport aux exigences du poste.
         - Sexe (Homme, Femme, Non spécifié)
-        - Niveau de formation atteint (Bac, Bac+2, Bac+3, Bac+5, Bac+8)
-        - Date de naissance (si elle est indiquée, sinon écrire "N/A")
-        
-        **Important** : ta réponse doit être en **français**, dans un format **clair et structuré**.
-        """
+        - Formation (Niveaux bac, bac, Bac+2, Bac+3, Bac+4, Bac+5, Bac+8)
+        - Date de naissance (si mentionnée, sinon N/A)
 
+        Présentez la réponse dans un format de type JSON (mais sous forme de texte brut, pas de JSON réel). Assurez-vous qu'elle est analysable.
+
+        Exemple :
+
+        {{
+          "Nom du candidat": "John Doe",
+          "Adresse e-mail": "john.doe@example.com",
+          "Numéro de téléphone": "+15551234567",
+          "Ville": "New York",
+          "Pays": "États-Unis",
+          "Nombre total d'années d'expérience": "5",
+          "Pourcentage d'admissibilité": "85 %",
+          "Commentaires": "John possède une solide expérience en gestion de projet et correspond bien aux exigences du poste. Il manque d'expérience dans les technologies spécifiques décrites dans la description du poste, ce qui diminue le pourcentage.",
+          "Sexe": "Homme",
+          "Formation": "Bac+5",
+          "Date de naissance": "1990-01-01"
+        }}
+
+        Veuillez répondre en français.
+        """
         try:
             response = model.generate_content(prompt)
             return response.text.strip()

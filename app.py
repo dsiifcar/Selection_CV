@@ -51,6 +51,8 @@ if 'filename' not in st.session_state:
     st.session_state['filename'] = None
 if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = []  # Store chat history
+if 'model' not in st.session_state:
+    st.session_state['model'] = None  # Store the Gemini model
 # Input method selection
 # st.markdown("<h3 style='text-align: left;'>Méthode de saisie des détails du poste:</h3>", unsafe_allow_html=True)
 input_method = st.radio("", ["Lien URL", "Saisir manuellement"])
@@ -94,6 +96,34 @@ elif input_method == "Saisir manuellement":
 else:
     st.warning("Sélectionnez une méthode de saisie (Manuelle ou URL).")
 
+
+# Function to configure API key and the model (only if it hasn't been done yet)
+def configure_api_key():
+    if st.session_state['model'] is None:
+        api_keys = [
+            st.secrets["api_keys"]["key1"],
+            st.secrets["api_keys"]["key2"],
+            st.secrets["api_keys"]["key3"],
+            st.secrets["api_keys"]["key4"],
+            st.secrets["api_keys"]["key5"],
+        ]
+        api_key_index = 0
+        while api_key_index < len(api_keys):
+            try:
+                key = api_keys[api_key_index]
+                genai.configure(api_key=key)
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                st.session_state['model'] = model  # Store the model in session state
+                return model
+            except Exception as e:
+                st.error(f"Failed to configure API with key {key}: {e}")
+                api_key_index += 1
+                continue
+        st.error("Sorry, the service is temporarily unavailable. Please try again later.")
+        return None
+    else:
+        return st.session_state['model']  # Return the stored model
+
 # Télécharger les fichiers
 st.markdown("<h3 style='text-align: left;'>Téléversement des CV:</h3>", unsafe_allow_html=True)
 uploaded_files = st.file_uploader("Téléchargez les CV (PDF, DOCX)", accept_multiple_files=True, type=["pdf", "docx"])
@@ -109,39 +139,10 @@ if uploaded_files:
 
 # Bouton pour démarrer le processus
 if st.button("Démarrer la Sélection"):
-    # API Keys from Streamlit Secrets
-    api_keys = [
-        st.secrets["api_keys"]["key1"],
-        st.secrets["api_keys"]["key2"],
-        st.secrets["api_keys"]["key3"],
-        st.secrets["api_keys"]["key4"],
-        st.secrets["api_keys"]["key5"],
-    ]
-
-    # Track the last used API key index
-    api_key_index = 0
-
-    # Function to set API key and configure the model in order
-    def configure_api_key():
-        global api_key_index
-        while api_key_index < len(api_keys):
-            try:
-                key = api_keys[api_key_index]  # Select the current API key
-                genai.configure(api_key=key)
-                model = genai.GenerativeModel('gemini-1.5-flash')  # Configure the model with the API key
-                return model
-            except Exception as e:
-                st.error(f"Failed to configure API with key {key}: {e}")
-                api_key_index += 1  # Move to the next API key
-                continue
-        # If all keys fail, show a message and return None
-        st.error("Sorry, the service is temporarily unavailable. Please try again later.")
-        return None  # If all keys fail
-
-    # Initialize the model using the first working API key
+    # Attempt to configure the API and retrieve the model
     model = configure_api_key()
     if model is None:
-        st.stop()
+        st.stop()  # Stop execution if the model couldn't be configured
 
 
     # Limitation du débit et total des requêtes (Vous pouvez ajuster ces valeurs)
@@ -410,8 +411,10 @@ if st.button("Démarrer la Sélection"):
             mime='application/vnd.ms-excel'
         )
 
-    # Chat with AI Section - Iterative Chat
-    if st.session_state['resume_text']:
+# Chat with AI Section - Iterative Chat (Outside the "Démarrer la Sélection" button)
+if st.session_state['resume_text']:
+    model = configure_api_key()  # Ensure the model is configured.
+    if model:
         st.markdown("<h3 style='text-align: left;'>Chattez avec l'IA concernant le CV de:</h3>", unsafe_allow_html=True)
         st.markdown(f"Fichier: {st.session_state['filename']}")  # Display filename
 
@@ -456,5 +459,5 @@ if st.button("Démarrer la Sélection"):
             except Exception as e:
                 st.error(f"Erreur lors de la communication avec l'IA: {e}")
 
-    else:
-        st.info("Veuillez d'abord télécharger et traiter un CV pour activer cette fonctionnalité.")
+else:
+    st.info("Veuillez d'abord télécharger et traiter un CV pour activer cette fonctionnalité.")

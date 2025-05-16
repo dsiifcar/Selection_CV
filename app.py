@@ -49,6 +49,8 @@ if 'resume_text' not in st.session_state:
     st.session_state['resume_text'] = None
 if 'filename' not in st.session_state:
     st.session_state['filename'] = None
+if 'chat_history' not in st.session_state:
+    st.session_state['chat_history'] = []  # Store chat history
 # Input method selection
 # st.markdown("<h3 style='text-align: left;'>Méthode de saisie des détails du poste:</h3>", unsafe_allow_html=True)
 input_method = st.radio("", ["Lien URL", "Saisir manuellement"])
@@ -408,39 +410,51 @@ if st.button("Démarrer la Sélection"):
             mime='application/vnd.ms-excel'
         )
 
-    # Chat with AI Section
+    # Chat with AI Section - Iterative Chat
     if st.session_state['resume_text']:
         st.markdown("<h3 style='text-align: left;'>Chattez avec l'IA concernant le CV de:</h3>", unsafe_allow_html=True)
         st.markdown(f"Fichier: {st.session_state['filename']}")  # Display filename
-        user_question = st.text_area("Posez votre question sur ce CV:")
 
-        if st.button("Envoyer la question"):
-            if user_question:
-                # Prepare the prompt with the resume text and user question
-                chat_prompt = f"""
-                Vous êtes un assistant spécialisé dans l'analyse de CV.
+        # Display Chat History
+        for message in st.session_state['chat_history']:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
-                Informations sur le poste:
-                Titre du poste: {st.session_state['job_title']}
-                Exigences d'expérience: {st.session_state['job_experience']}
-                Description du poste: {st.session_state['job_description']}
+        user_question = st.chat_input("Posez votre question sur ce CV:")
 
-                CV:
-                {st.session_state['resume_text']}
+        if user_question:
+            st.session_state['chat_history'].append({"role": "user", "content": user_question})
+            with st.chat_message("user"):
+                st.markdown(user_question)
 
-                Question de l'utilisateur: {user_question}
+            # Prepare the prompt with the resume text, job details, and chat history
+            chat_prompt = f"""
+            Vous êtes un assistant spécialisé dans l'analyse de CV.
 
-                Veuillez répondre à la question de l'utilisateur en utilisant les informations contenues dans le CV et les informations sur le poste. Soyez précis et concis dans votre réponse.
-                """
+            Informations sur le poste:
+            Titre du poste: {st.session_state['job_title']}
+            Exigences d'expérience: {st.session_state['job_experience']}
+            Description du poste: {st.session_state['job_description']}
 
-                try:
-                    # Use the same model instance to generate the response
-                    chat_response = model.generate_content(chat_prompt)
-                    st.markdown("Réponse de l'IA:")
-                    st.write(chat_response.text)  # Display the AI's response
-                except Exception as e:
-                    st.error(f"Erreur lors de la communication avec l'IA: {e}")
-            else:
-                st.warning("Veuillez entrer une question.")
+            CV:
+            {st.session_state['resume_text']}
+
+            Historique de la conversation:
+            """
+            for message in st.session_state['chat_history']:
+                chat_prompt += f"\n{message['role']}: {message['content']}"
+
+            chat_prompt += "\nassistant:" # signal that gemini should answer
+
+            try:
+                # Use the same model instance to generate the response
+                chat_response = model.generate_content(chat_prompt)
+                ai_answer = chat_response.text
+                st.session_state['chat_history'].append({"role": "assistant", "content": ai_answer})
+                with st.chat_message("assistant"):
+                    st.markdown(ai_answer)  # Display the AI's response
+            except Exception as e:
+                st.error(f"Erreur lors de la communication avec l'IA: {e}")
+
     else:
         st.info("Veuillez d'abord télécharger et traiter un CV pour activer cette fonctionnalité.")

@@ -350,8 +350,7 @@ if st.button("Démarrer la Sélection"):
 
     # Check if all expected columns are present in the DataFrame
     expected_columns = ["Nom du fichier", "Nom du candidat", "Job Title", "Admissibilité (%)", "Commentaires", "Gender",
-                        "Formation", "Ville", "Pays", "Expérience (Années)", "Date de naissance", "Téléphone", "E-mail",
-                        "Resume Link"]
+                        "Formation", "Ville", "Pays", "Expérience (Années)", "Date de naissance", "Téléphone", "E-mail"]
     missing_columns = [col for col in expected_columns if col not in df.columns]
 
     if missing_columns:

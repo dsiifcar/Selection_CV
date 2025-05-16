@@ -8,7 +8,8 @@ import streamlit as st
 import pandas as pd
 import shutil
 import io
-from docx.enum.section import WD_ORIENT
+from docx.enum.section import WD_ORIENT, WD_SECTION  # Import WD_SECTION
+from docx.shared import Inches, Pt
 
 # Configuration de l'interface utilisateur Streamlit
 st.set_page_config(layout="wide")  # Utiliser toute la largeur de la page
@@ -252,6 +253,60 @@ if st.button("Démarrer la Sélection"):
             st.error(f"Erreur lors de l'appel de l'IA: {e}")
             return None
 
+    # Function to set document to portrait
+    def set_portrait(document):
+        section = document.sections[0]
+        section.orientation = WD_ORIENT.PORTRAIT
+        new_width, new_height = section.page_height, section.page_width
+        section.page_width = new_width
+        section.page_height = new_height
+        # Adjust margins for portrait orientation
+        section.left_margin = Inches(1)  # Example: 1 inch margin
+        section.right_margin = Inches(1)
+        section.top_margin = Inches(1)
+        section.bottom_margin = Inches(1)
+
+    # Function to create a styled Word document
+    def create_styled_docx(df):
+        document = Document()
+
+        # Set the document to portrait orientation
+        set_portrait(document)
+
+        # Add title
+        document.add_heading('Resume Selection Results', level=1)
+
+        # Add DataFrame as a table
+        table = document.add_table(rows=1, cols=len(df.columns))
+
+        # Add column headers
+        hdr_cells = table.rows[0].cells
+        for i, column in enumerate(df.columns):
+            hdr_cells[i].text = column
+            hdr_cells[i].paragraphs[0].runs[0].font.bold = True
+
+        # Add data rows
+        for _, row in df.iterrows():
+            row_cells = table.add_row().cells
+            for i, value in enumerate(row):
+                if isinstance(value, list):
+                    row_cells[i].text = ", ".join(value)  # Convert list to comma-separated string
+                else:
+                    row_cells[i].text = str(value)
+
+        # Adjust table style for better readability
+        table.style = 'Light Shading Accent 1'
+        for row in table.rows:
+            for cell in row.cells:
+                cell.paragraphs[0].runs[0].font.size = 106680  # 10pt font size
+
+        # Save the document to a BytesIO object
+        docx_stream = io.BytesIO()
+        document.save(docx_stream)
+        docx_stream.seek(0)  # Rewind the stream to the beginning
+        return docx_stream
+
+
     # --- Traitement des fichiers téléchargés ---
     for i, uploaded_file in enumerate(uploaded_files):
         if total_requests >= MAX_TOTAL_REQUESTS:
@@ -396,53 +451,14 @@ if st.button("Démarrer la Sélection"):
             processed_data = output.getvalue()
             return processed_data
 
-        # Function to set document to portrait
-        def set_portrait(document):
-            section = document.sections[0]
-            section.orientation = WD_ORIENT.PORTRAIT
-            new_width, new_height = section.page_height, section.page_width
-            section.page_width = new_width
-            section.page_height = new_height
-
-        # Function to create a styled Word document
-        def create_styled_docx(df):
-            document = Document()
-
-            # Set the document to portrait orientation
-            set_portrait(document)
-
-            # Add title
-            document.add_heading('Resume Selection Results', level=1)
-
-            # Add DataFrame as a table
-            table = document.add_table(rows=1, cols=len(df.columns))
-
-            # Add column headers
-            hdr_cells = table.rows[0].cells
-            for i, column in enumerate(df.columns):
-                hdr_cells[i].text = column
-                hdr_cells[i].paragraphs[0].runs[0].font.bold = True
-
-            # Add data rows
-            for _, row in df.iterrows():
-                row_cells = table.add_row().cells
-                for i, value in enumerate(row):
-                    if isinstance(value, list):
-                        row_cells[i].text = ", ".join(value)  # Convert list to comma-separated string
-                    else:
-                        row_cells[i].text = str(value)
-
-            # Adjust table style for better readability
-            table.style = 'Light Shading Accent 1'
-            for row in table.rows:
-                for cell in row.cells:
-                    cell.paragraphs[0].runs[0].font.size = 106680  # 10pt font size
-
-            # Save the document to a BytesIO object
-            docx_stream = io.BytesIO()
-            document.save(docx_stream)
-            docx_stream.seek(0)  # Rewind the stream to the beginning
-            return docx_stream
+        # Button to download results in DOCX format
+        docx_file = create_styled_docx(df)
+        st.download_button(
+            label="Télécharger les résultats au format Word (DOCX)",
+            data=docx_file,
+            file_name='resume_selection_results.docx',
+            mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
 
         # Download button
         excel_file = to_excel(df)
@@ -451,13 +467,4 @@ if st.button("Démarrer la Sélection"):
             data=excel_file,
             file_name='resume_selection_results.xlsx',
             mime='application/vnd.ms-excel'
-        )
-
-        # Button to download results in DOCX format
-        docx_file = create_styled_docx(df)
-        st.download_button(
-            label="Télécharger les résultats au format Word (DOCX)",
-            data=docx_file,
-            file_name='resume_selection_results.docx',
-            mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )

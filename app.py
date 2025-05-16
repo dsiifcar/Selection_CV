@@ -303,7 +303,8 @@ if st.button("Démarrer la Sélection"):
 
                     # Handle potential NoneType for Comments
                     comments_match = re.search(r'"Commentaires":\s*"([^"]*)"', ai_response)
-                    comments = comments_match.group(1) if comments_match else "N/A"
+                    # Shorten comments to a maximum of 100 characters
+                    comments = comments_match.group(1)[:100] + "..." if comments_match and len(comments_match.group(1)) > 100 else comments_match.group(1) if comments_match else "N/A"
 
                     # Extract interview questions
                     questions_match = re.search(r'"Questions d\'entretien":\s*\[([^\]]*)\]', ai_response)
@@ -401,4 +402,50 @@ if st.button("Démarrer la Sélection"):
             data=excel_file,
             file_name='resume_selection_results.xlsx',
             mime='application/vnd.ms-excel'
+        )
+
+        # Function to create a styled Word document
+        def create_styled_docx(df):
+            document = Document()
+
+            # Add title
+            document.add_heading('Resume Selection Results', level=1)
+
+            # Add DataFrame as a table
+            table = document.add_table(rows=1, cols=len(df.columns))
+
+            # Add column headers
+            hdr_cells = table.rows[0].cells
+            for i, column in enumerate(df.columns):
+                hdr_cells[i].text = column
+                hdr_cells[i].paragraphs[0].runs[0].font.bold = True
+
+            # Add data rows
+            for _, row in df.iterrows():
+                row_cells = table.add_row().cells
+                for i, value in enumerate(row):
+                    if isinstance(value, list):
+                        row_cells[i].text = ", ".join(value)  # Convert list to comma-separated string
+                    else:
+                        row_cells[i].text = str(value)
+
+            # Adjust table style for better readability
+            table.style = 'Light Shading Accent 1'
+            for row in table.rows:
+                for cell in row.cells:
+                    cell.paragraphs[0].runs[0].font.size = 106680  # 10pt font size
+
+            # Save the document to a BytesIO object
+            docx_stream = io.BytesIO()
+            document.save(docx_stream)
+            docx_stream.seek(0)  # Rewind the stream to the beginning
+            return docx_stream
+
+        # Button to download results in DOCX format
+        docx_file = create_styled_docx(df)
+        st.download_button(
+            label="Télécharger les résultats au format Word (DOCX)",
+            data=docx_file,
+            file_name='resume_selection_results.docx',
+            mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         )

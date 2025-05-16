@@ -22,7 +22,7 @@ st.markdown(
     }
     .subtitle {
         text-align: center;
-        font-size: 1.5em;
+        font-size: 2.5em;
         color: #6c757d; /* Gris Bootstrap */
     }
     .stTextInput > label,
@@ -53,8 +53,10 @@ if 'chat_history' not in st.session_state:
     st.session_state['chat_history'] = {}  # Store chat history by filename
 if 'model' not in st.session_state:
     st.session_state['model'] = None  # Store the Gemini model
+if 'resume_summary' not in st.session_state:
+    st.session_state['resume_summary'] = None  # Store the summary of all resumes
+
 # Input method selection
-# st.markdown("<h3 style='text-align: left;'>Méthode de saisie des détails du poste:</h3>", unsafe_allow_html=True)
 input_method = st.radio("", ["Lien URL", "Saisir manuellement"])
 
 if input_method == "Lien URL":
@@ -410,10 +412,36 @@ if st.button("Démarrer la Sélection"):
             mime='application/vnd.ms-excel'
         )
 
+    # --- Summarize All Resumes ---
+    if st.session_state['resume_texts']:
+        all_resume_texts = "\n".join(st.session_state['resume_texts'].values())
+        summary_prompt = f"""
+            Compte tenu des exigences suivantes pour le poste:
+
+            Titre du poste: {st.session_state['job_title']}
+            Exigences d'expérience: {st.session_state['job_experience']}
+            Description du poste: {st.session_state['job_description']}
+
+            Et des informations contenues dans les CV suivants:
+
+            {all_resume_texts}
+
+            Générez un résumé concis (environ 5-7 phrases) des compétences, de l'expérience et de la formation que l'on retrouve le plus fréquemment dans ces CV. Ce résumé doit représenter les caractéristiques générales des candidats.
+        """
+
+        try:
+            summary_response = model.generate_content(summary_prompt)
+            st.session_state['resume_summary'] = summary_response.text
+            st.success("Résumé des CV généré avec succès!")
+            st.write("Résumé des CV:", st.session_state['resume_summary'])
+        except Exception as e:
+            st.error(f"Erreur lors de la génération du résumé des CV: {e}")
+    else:
+        st.warning("Veuillez télécharger et traiter les CV avant de générer le résumé.")
 
 # Chat with AI Section - Iterative Chat (Outside the "Démarrer la Sélection" button)
 model = configure_api_key()  # Ensure the model is configured.
-if model:
+if model and st.session_state['resume_summary']:
     # Allow selection of the resume for chatting
     available_resumes = list(st.session_state['resume_texts'].keys())
     if available_resumes:
@@ -441,16 +469,21 @@ if model:
                 with st.chat_message("user"):
                     st.markdown(user_question)
 
-                # Prepare the prompt with the resume text, job details, and chat history
+                # Prepare the prompt with the resume text, job details, resume summary, and chat history
                 chat_prompt = f"""
-                Vous êtes un assistant spécialisé dans l'analyse de CV.
+                Vous êtes un assistant spécialisé dans l'analyse de CV. Vous avez accès à un résumé des compétences, de l'expérience et de la formation que l'on retrouve le plus fréquemment dans l'ensemble des CV téléchargés. Utilisez ce résumé pour contextualiser vos réponses.
 
                 Informations sur le poste:
                 Titre du poste: {st.session_state['job_title']}
                 Exigences d'expérience: {st.session_state['job_experience']}
                 Description du poste: {st.session_state['job_description']}
 
-                CV:
+                Résumé des CV (Compétences, expérience et formation générales):
+                {st.session_state['resume_summary']}
+
+                CV sélectionné pour l'analyse:
+                Fichier: {st.session_state['selected_filename']}
+                Contenu du CV:
                 {selected_resume_text}
 
                 Historique de la conversation:
@@ -471,7 +504,7 @@ if model:
                 except Exception as e:
                     st.error(f"Erreur lors de la communication avec l'IA: {e}")
     else:
-        st.info("Veuillez d'abord télécharger et traiter un CV pour activer cette fonctionnalité.")
+        st.info("Veuillez d'abord télécharger et traiter un CV et générer le résumé des CV pour activer cette fonctionnalité.")
 
 else:
-    st.info("Veuillez d'abord télécharger et traiter un CV pour activer cette fonctionnalité.")
+    st.info("Veuillez d'abord télécharger et traiter un CV et générer le résumé des CV pour activer cette fonctionnalité.")

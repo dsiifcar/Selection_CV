@@ -76,7 +76,7 @@ def attempt_api_configuration(keys_to_try):
             key = keys_to_try[idx]
             genai.configure(api_key=key)
             # Test the configuration by trying to create a model instance
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-2.5-flash')
             st.session_state.api_key_configured = True
             st.info(f"API configurée avec succès (utilisation de la clé index {idx}).")
             return model # Return the model instance
